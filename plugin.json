@@ -189,6 +189,28 @@
         ]
       },
       {
+        "key": "CloudflareTURN",
+        "custom": true,
+        "settings": [
+          {
+            "key": "CloudflareTurnTokenId",
+            "display_name": "Cloudflare TURN Token ID",
+            "type": "text",
+            "help_text": "(Optional) The Cloudflare TURN Token ID used for generating TURN credentials.",
+            "default": "",
+            "hosting": "on-prem"
+          },
+          {
+            "key": "CloudflareTurnApiToken",
+            "display_name": "Cloudflare TURN API Token",
+            "type": "text",
+            "help_text": "(Optional) The Cloudflare TURN API Token used for generating TURN credentials.",
+            "default": "",
+            "hosting": "on-prem"
+          }
+        ]
+      },
+      {
         "key": "CallRecordings",
         "custom": true,
         "settings": [
@@ -476,6 +498,22 @@
         "type": "bool",
         "default": false,
         "help_text": "(Optional) When enabled, it will pass and use the configured TURN candidates to server initiated connections.",
+        "hosting": "on-prem"
+      },
+      {
+        "key": "CloudflareTurnTokenId",
+        "display_name": "Cloudflare TURN Token ID",
+        "type": "text",
+        "help_text": "(Optional) The Cloudflare TURN Token ID used for generating TURN credentials.",
+        "default": "",
+        "hosting": "on-prem"
+      },
+      {
+        "key": "CloudflareTurnApiToken",
+        "display_name": "Cloudflare TURN API Token",
+        "type": "text",
+        "help_text": "(Optional) The Cloudflare TURN API Token used for generating TURN credentials.",
+        "default": "",
         "hosting": "on-prem"
       },
       {
