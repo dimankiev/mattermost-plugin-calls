@@ -73,6 +73,9 @@ import TCPServerPort from 'src/components/admin_console_settings/tcp_server_port
 import TestMode from 'src/components/admin_console_settings/test_mode';
 import TURNCredentialsExpirationMinutes from 'src/components/admin_console_settings/turn_credentials_expiration_minutes';
 import TURNStaticAuthSecret from 'src/components/admin_console_settings/turn_static_auth_secret';
+import CloudflareTurnApiToken from './components/admin_console_settings/cloudflare_turn_api_token';
+import CloudflareTurnTokenId from './components/admin_console_settings/cloudflare_turn_token_id';
+import CloudflareTURNSection from './components/admin_console_settings/sections/cloudflare_turn';
 import UDPServerAddress from 'src/components/admin_console_settings/udp_server_address';
 import UDPServerPort from 'src/components/admin_console_settings/udp_server_port';
 import {PostTypeCloudTrialRequest} from 'src/components/custom_post_types/post_type_cloud_trial_request';
@@ -485,6 +488,13 @@ export default class Plugin {
         registry.registerAdminConsoleCustomSetting('TURNStaticAuthSecret', TURNStaticAuthSecret);
         registry.registerAdminConsoleCustomSetting('TURNCredentialsExpirationMinutes', TURNCredentialsExpirationMinutes);
         registry.registerAdminConsoleCustomSetting('ServerSideTURN', ServerSideTURN);
+
+        // Cloudflare TURN Section
+        if (registry.registerAdminConsoleCustomSection) {
+            registry.registerAdminConsoleCustomSection('CloudflareTURNSection', CloudflareTURNSection);
+        }
+        registry.registerAdminConsoleCustomSetting('CloudflareTurnTokenId', CloudflareTurnTokenId);
+        registry.registerAdminConsoleCustomSetting('CloudflareTurnApiToken', CloudflareTurnApiToken);
 
         // Recordings
         if (registry.registerAdminConsoleCustomSection) {
