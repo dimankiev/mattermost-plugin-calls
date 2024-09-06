@@ -90,6 +90,11 @@ type configuration struct {
 	// The language to be passed to the live captions transcriber.
 	LiveCaptionsLanguage string
 
+	// Cloudflare Calls TURN Service Token ID
+	CloudflareTurnTokenId string
+	// Cloudflare Calls TURN Service API Token
+	CloudflareTurnApiToken string
+
 	adminClientConfig
 
 	clientConfig
@@ -363,6 +368,8 @@ func (c *configuration) Clone() *configuration {
 	cfg.TranscribeAPIAzureSpeechRegion = c.TranscribeAPIAzureSpeechRegion
 	cfg.LiveCaptionsModelSize = c.LiveCaptionsModelSize
 	cfg.LiveCaptionsLanguage = c.LiveCaptionsLanguage
+	cfg.CloudflareTurnTokenId = c.CloudflareTurnTokenId
+	cfg.CloudflareTurnApiToken = c.CloudflareTurnApiToken
 
 	if c.UDPServerPort != nil {
 		cfg.UDPServerPort = model.NewInt(*c.UDPServerPort)

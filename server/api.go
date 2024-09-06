@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net/http"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/time/rate"
 
@@ -412,37 +413,89 @@ func (p *Plugin) handleGetTURNCredentials(w http.ResponseWriter, r *http.Request
 	defer p.httpAudit("handleGetTURNCredentials", &res, w, r)
 
 	cfg := p.getConfiguration()
-	if cfg.TURNStaticAuthSecret == "" {
-		res.Err = "TURNStaticAuthSecret should be set"
-		res.Code = http.StatusForbidden
-		return
+	var turnConfigs []rtc.ICEServerConfig
+
+	// Check for Cloudflare credentials
+	if cfg.CloudflareTurnTokenId != "" && cfg.CloudflareTurnApiToken != "" {
+		cfTurnConfig, err := p.getCloudflareICEServers(cfg.CloudflareTurnTokenId, cfg.CloudflareTurnApiToken)
+		if err != nil {
+			p.LogError("Failed to get Cloudflare TURN credentials", "error", err.Error())
+		} else {
+			turnConfigs = append(turnConfigs, cfTurnConfig)
+		}
 	}
 
-	turnServers := cfg.ICEServersConfigs.getTURNConfigsForCredentials()
-	if len(turnServers) == 0 {
+	// Existing TURN server logic
+	if cfg.TURNStaticAuthSecret != "" {
+		turnServers := cfg.ICEServersConfigs.getTURNConfigsForCredentials()
+		if len(turnServers) > 0 {
+			user, appErr := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
+			if appErr != nil {
+				res.Err = appErr.Error()
+				res.Code = http.StatusInternalServerError
+				return
+			}
+
+			configs, err := rtc.GenTURNConfigs(turnServers, user.Username, cfg.TURNStaticAuthSecret, *cfg.TURNCredentialsExpirationMinutes)
+			if err != nil {
+				res.Err = err.Error()
+				res.Code = http.StatusInternalServerError
+				return
+			}
+			turnConfigs = append(turnConfigs, configs...)
+		}
+	}
+
+	if len(turnConfigs) == 0 {
 		res.Err = "No TURN server was configured"
 		res.Code = http.StatusForbidden
 		return
 	}
 
-	user, appErr := p.API.GetUser(r.Header.Get("Mattermost-User-Id"))
-	if appErr != nil {
-		res.Err = appErr.Error()
-		res.Code = http.StatusInternalServerError
-		return
-	}
-
-	configs, err := rtc.GenTURNConfigs(turnServers, user.Username, cfg.TURNStaticAuthSecret, *cfg.TURNCredentialsExpirationMinutes)
-	if err != nil {
-		res.Err = err.Error()
-		res.Code = http.StatusInternalServerError
-		return
-	}
-
 	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(configs); err != nil {
+	if err := json.NewEncoder(w).Encode(turnConfigs); err != nil {
 		p.LogError(err.Error())
 	}
+}
+
+func (p *Plugin) getCloudflareICEServers(tokenID, apiToken string) (rtc.ICEServerConfig, error) {
+	client := &http.Client{}
+	reqBody := strings.NewReader(`{"ttl": 86400}`)
+	req, err := http.NewRequest("POST", fmt.Sprintf("https://rtc.live.cloudflare.com/v1/turn/keys/%s/credentials/generate", tokenID), reqBody)
+	if err != nil {
+		return rtc.ICEServerConfig{}, err
+	}
+
+	req.Header.Add("Authorization", "Bearer "+apiToken)
+	req.Header.Add("Content-Type", "application/json")
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return rtc.ICEServerConfig{}, err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return rtc.ICEServerConfig{}, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	var cfResp struct {
+		ICEServers struct {
+			URLs       []string `json:"urls"`
+			Username   string   `json:"username"`
+			Credential string   `json:"credential"`
+		} `json:"iceServers"`
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(&cfResp); err != nil {
+		return rtc.ICEServerConfig{}, err
+	}
+
+	return rtc.ICEServerConfig{
+		URLs:       cfResp.ICEServers.URLs,
+		Username:   cfResp.ICEServers.Username,
+		Credential: cfResp.ICEServers.Credential,
+	}, nil
 }
 
 // handleConfig returns the client configuration, and cloud license information
